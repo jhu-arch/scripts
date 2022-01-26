@@ -19,7 +19,7 @@ source $HOME/$WSN/bin/activate
 
 which python
 
-curl https://github.com/jhu-arch/support/sofwares/python/get-pip.py | python
+curl https://raw.githubusercontent.com/jhu-arch/support/main/sofwares/python/get-pip.py | python
 
 pip install cffi==1.15.0 cloudpickle==2.0.0 psutil==5.9.0 pyyaml==6.0 pycparser==2.21 six==1.16.0
 pip install tensorflow-gpu==1.15.5 mpi4py==3.0.3 openslide-python==1.1.2 imgaug==0.4.0 h5py==2.10.0 gdown ruamel.yaml
