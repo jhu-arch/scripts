@@ -1,9 +1,11 @@
 #!/bin/bash
 
 ###########################################################
+# ARCH - Advanced Research Computing at Hopkins
+#
 # Ticket: 163356 MARCC - Whole-slide CNN Training Pipeline
 # Author: Ricardo S Jacomini < rdesouz4@jhu.edu >
-# Data: Jan 26, 2022
+# Data:   Jan 26, 2022
 # 
 # Dependencies
 #    python = ">=3.7 <3.11"
@@ -13,6 +15,9 @@
 #    tensorflow-huge-model-support = {git = "https://github.com/aetherAI/tensorflow-huge-model-support.git", rev = "1.1.2"}
 #    mgaug = "^0.4.0"
 #    tensorflow-gpu = "1.15.5"
+#
+# Install : curl https://raw.githubusercontent.com/jhu-arch/support/main/scripts/BC/whole_slide_cnn_python.sh | bash
+#
 ###########################################################
 
 ml python/3.7
