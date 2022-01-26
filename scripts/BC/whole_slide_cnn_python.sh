@@ -15,6 +15,7 @@
 #    tensorflow-huge-model-support = {git = "https://github.com/aetherAI/tensorflow-huge-model-support.git", rev = "1.1.2"}
 #    mgaug = "^0.4.0"
 #    tensorflow-gpu = "1.15.5"
+#    (optional) R 4.0.2
 #
 # Install : curl https://raw.githubusercontent.com/jhu-arch/support/main/scripts/BC/whole_slide_cnn_python.sh | bash
 #
