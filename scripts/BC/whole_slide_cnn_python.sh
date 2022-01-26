@@ -1,5 +1,19 @@
 #!/bin/bash
 
+###########################################################
+# Ticket: 163356 MARCC - Whole-slide CNN Training Pipeline
+# Author: Ricardo S Jacomini < rdesouz4@jhu.edu >
+# Data: Jan 26, 2022
+# 
+# Dependencies
+#    python = ">=3.7 <3.11"
+#    horovod = "0.19.0"
+#    mpi4py = "3.0.3"
+#    openslide-python = "1.1.2"
+#    tensorflow-huge-model-support = {git = "https://github.com/aetherAI/tensorflow-huge-model-support.git", rev = "1.1.2"}
+#    mgaug = "^0.4.0"
+#    tensorflow-gpu = "1.15.5"
+###########################################################
 
 ml python/3.7
 ml stack/0.1
