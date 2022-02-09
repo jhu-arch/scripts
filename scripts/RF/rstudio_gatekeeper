@@ -1,0 +1,11 @@
+#!/bin/bash
+# https://stackoverflow.com/questions/10910193/how-to-authenticate-username-password-using-pam-w-o-root-privileges/11031650#11031650
+read -s -p "? " PASSWORD
+RESULT=$(rstudio_gatekeeper_auth $USER $PASSWORD)
+if [[ $? -eq 0 ]]; then
+    #echo "YES"
+    exit 0
+else
+   #echo "NO"
+   exit 1
+fi

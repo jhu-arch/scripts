@@ -1,0 +1,110 @@
+#!/bin/bash -x
+<<'DOC'
+Screen an Rstudio server session.
+Written by Ryan Bradley on 2019.03.08 for MARCC
+DOC
+
+export RSERVER_BIN=/software/apps/rstudio/1.1.463/rstudio-server/bin/rserver
+export GATEKEEPER=/software/apps/marcc/scripts/rstudio_gatekeeper
+
+export SESSION_DIR=$(pwd)
+export PORT=$(shuf -i8000-9999 -n1)
+export TMPDIR=$(pwd)/rstudio-session-$SLURM_JOBID
+export TMPDIR_SPECIAL=$TMPDIR
+export PASSWORD_FILE=$TMPDIR/token
+mkdir -p $TMPDIR
+sleep 3
+
+# screened notebook server writes to a log
+export SCREEN_LOG=$TMPDIR/rstudio-server.$SLURM_JOBID.log
+# a temporary file is required to specify the screen log
+export SCREEN_CONF_TMP=$TMPDIR/rstudio-server.$SLURM_JOBID.tmp
+# a temp script starts the screen so we can grab the token
+export BOOTSTRAP_SCRIPT=$(mktemp)
+
+# check for R
+if [[ -z "$(command -v R)" ]]; then
+echo "[ERROR] you must load a module with R first (try 'module load R')"
+ml R/4.0.2;
+fi
+
+# save modules
+module load proot
+module save rserver_marcc_modules
+
+# we write a script that is called from BASH and
+#   executes itself in a screen
+cat <<'EOF_OUT'> $BOOTSTRAP_SCRIPT
+#!/bin/bash
+# run in a screen with specific log file
+# typically: TMPDIR="./" tmp_screen_rc=$(mktemp)
+tmp_screen_rc=$SCREEN_CONF_TMP
+echo "[STATUS] temporary screenrc at $tmp_screen_rc"
+# the bootstrap script writes a conf to set screen logfile
+cat <<EOF> $tmp_screen_rc
+logfile ${SCREEN_LOG:-log-task-queue}
+EOF
+if [ -z "$STY" ]; then 
+echo "[STATUS] executing in a screen"
+exec screen -c $tmp_screen_rc -Ldm -S rstudio-server /bin/bash "$0"
+fi
+
+# get the user modules for this instance
+module restore rserver_marcc_modules
+
+# start the server
+proot -b ${TMPDIR_SPECIAL}:/tmp \
+-b /software/centos7/usr/:/usr -b /software/centos7/lib64/:/lib64 -b /software/centos7/lib/:/lib \
+$RSERVER_BIN \
+--www-port ${PORT} \
+--auth-none 0 \
+--auth-pam-helper-path ${GATEKEEPER} \
+--auth-encrypt-password 1
+
+EOF_OUT
+
+# run the bootstrap script which screens itself
+bash $BOOTSTRAP_SCRIPT
+
+# development note: you need to carefully set the 
+#   INTEL_LICENSE_FILE variable in Renviron
+#   otherwise you cannot compile with intel in
+#   the console (for some reason the terminal works)
+#   perhaps because the R Studio Session does not 
+#   inherit the entire environment
+
+# DEVELOPMENT NOTE: abrupt terminations without killing the SLURM 
+#   may require a new SLURM job to clear stale .nfs files
+
+# report to the user
+python <<EOF
+import os
+port = int("${PORT}")
+print("\n[STATUS] RStudio server is ready!\n")
+print("[STATUS] additional details: "+''.join(['\n'+' '*9+i for i in [
+"Forwarded port: %d"%port,"Remote server: $(hostname -s)",
+"Remote port: %d"%port,"SSH server: login.marcc.jhu.edu",
+"SSH login: $USER","SSH port: 22"]]))
+print("[STATUS] the server is running in the foreground")
+print("[STATUS] the server will exit when your SLURM session ends")
+print("[STATUS] you may wish to clean up your temporary folder later:")
+print("[STATUS]   ${TMPDIR_SPECIAL}\n")
+print("[STATUS] HOW TO ACCESS YOUR RSTUDIO SERVER")
+token = False # not sure how to call password from URL
+print(("[STATUS] from a terminal you must run:\n\nssh -N -L "
+"%d:$(hostname -s):%d $USER@login.marcc.jhu.edu\n")%(port,port))
+print(("[STATUS] once you connect, enter your MARCC username and password at:\n"
+"\nhttp://localhost:%d/%s\n")%(port,"?token=%s"%token if token else ''))
+
+#! previously:
+#! print("[STATUS] use the password: \n")
+print("${TOKEN}\n")
+
+EOF
+# cleanup the bootstrap script and the screen logfile configuration
+sleep 3
+rm $BOOTSTRAP_SCRIPT
+rm $SCREEN_CONF_TMP
+# sleep otherwise the SLURM job exits
+sleep infinity
+
