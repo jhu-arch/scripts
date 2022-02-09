@@ -17,7 +17,7 @@ function Header
 cat > $1 << EOF
 #!/bin/bash
 #####################################
-#SBATCH --job-name=rstudio_container_%u
+#SBATCH --job-name=rstudio_container_$USER
 #SBATCH --time=$WALLTIME
 #SBATCH --partition=$QUEUE
 #SBATCH --mem=$MEM
@@ -45,7 +45,7 @@ cat >> $1 << EOF
 #SBATCH --output=/home/%u/rstudio-server.job.%j.out
 #####################################
 
-echo "TIMELIMIT DAYS: $WALLTIME"
+echo "TIMELIMIT DAYS: $TIME"
 
 EOF
 
@@ -175,8 +175,8 @@ singularity exec --cleanenv $DIR/$IMG \
 		--auth-none=0 \
 		--auth-pam-helper-path=pam-helper \
 EOF
-cat >> tmp.slurm << EOF
-		--auth-stay-signed-in-days=${TIMELIMIT_DAYS} \
+cat >> $1 << EOF
+		--auth-stay-signed-in-days=${TIME} \
 		--auth-timeout-minutes=0 \
 		--rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
@@ -212,8 +212,8 @@ singularity exec --cleanenv $DIR/$IMG \
 	rserver --www-port ${PORT} \
 	--auth-none=1 \
 EOF
-cat >> tmp.slurm << EOF
-	--auth-stay-signed-in-days=${TIMELIMIT_DAYS} \
+cat >> $1 << EOF
+	--auth-stay-signed-in-days=${TIME} \
 	--auth-timeout-minutes=0 \
 	--rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
@@ -255,8 +255,8 @@ singularity exec --cleanenv $DIR/$IMG \
 		--auth-none=0 \
 		--auth-pam-helper-path=pam-helper \
 EOF
-cat >> tmp.slurm << EOF
-		--auth-stay-signed-in-days=${TIMELIMIT_DAYS} \
+cat >> $1 << EOF
+		--auth-stay-signed-in-days=${TIME} \
 		--auth-timeout-minutes=0 \
 		--rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
@@ -268,7 +268,7 @@ function run ()
 
 	sbr="$(sbatch "$@")"
 
-  sleep 10
+  sleep 5
 
   #NODE=$(sacct -j ${JobId} -o nodelist | tail -n 1 | tr -d ' ')
 
@@ -408,7 +408,7 @@ export QUEUE="defq"
 export NODES=1
 export CPUS=1
 export MEM=8G
-export WALLTIME=02-01:00
+export WALLTIME=02-00:00
 export GRES=0
 export ACCOUNT=
 export QOS=$(sacctmgr show qos format=name | grep gpu)
@@ -461,6 +461,8 @@ then
     echo "Date $WALLTIME NOT a valid d-hh:mm WALLTIME"
     exit 1
 fi
+
+export TIME=$(echo $WALLTIME | cut -d - -f 1)
 
 # the arguments is a function name
 # type $@ &>/dev/null && create $MODEL || menu
