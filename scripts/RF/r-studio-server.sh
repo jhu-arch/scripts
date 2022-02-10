@@ -53,8 +53,6 @@ cat >> $1 << \EOF
 
 echo #SBATCH %N > node.txt
 
-echo $SLURM_NODELIST > nodelist.txt
-
 module load r/4.0.2
 
 # Create temporary directory to be populated with directories to bind-mount in the container
@@ -176,8 +174,8 @@ singularity exec --cleanenv $DIR/$IMG \
 		--auth-pam-helper-path=pam-helper \
 EOF
 cat >> $1 << EOF
-		--auth-stay-signed-in-days=${TIME} \
-		--auth-timeout-minutes=0 \
+		--auth-stay-signed-in-days=${TIME} \\
+		--auth-timeout-minutes=0 \\
 		--rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
 EOF
@@ -210,12 +208,12 @@ END
 
 singularity exec --cleanenv $DIR/$IMG \
 	rserver --www-port ${PORT} \
-	--auth-none=1 \
+    --auth-none=1 \
 EOF
 cat >> $1 << EOF
-	--auth-stay-signed-in-days=${TIME} \
-	--auth-timeout-minutes=0 \
-	--rsession-path=/etc/rstudio/rsession.sh
+    --auth-stay-signed-in-days=${TIME} \\
+    --auth-timeout-minutes=0 \\
+    --rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
 EOF
 
@@ -252,13 +250,13 @@ END
 
 singularity exec --cleanenv $DIR/$IMG \
 	rserver --www-port ${PORT} \
-		--auth-none=0 \
-		--auth-pam-helper-path=pam-helper \
+    --auth-none=0 \
+    --auth-pam-helper-path=pam-helper \
 EOF
 cat >> $1 << EOF
-		--auth-stay-signed-in-days=${TIME} \
-		--auth-timeout-minutes=0 \
-		--rsession-path=/etc/rstudio/rsession.sh
+    --auth-stay-signed-in-days=${TIME} \\
+    --auth-timeout-minutes=0 \\
+    --rsession-path=/etc/rstudio/rsession.sh
 printf 'rserver exited' 1>&2
 EOF
 
@@ -273,10 +271,9 @@ function run ()
   #NODE=$(sacct -j ${JobId} -o nodelist | tail -n 1 | tr -d ' ')
 
 	if [[ "$sbr" =~ Submitted\ batch\ job\ ([0-9]+) ]]; then
-		echo -e "\n\nHow to login to RStudio Server see details on: \n"
+		echo -e "\n\nHow to login to RStudio Server see details in: \n"
 	  echo "${HOME}/rstudio-server.job.${BASH_REMATCH[1]}.out"
     echo -e "\n"
-
 	else
 	  echo "sbatch failed"
 	  exit 1
@@ -291,11 +288,10 @@ function sync_container
     mkdir -p ${HOME}/singularity/r-studio/
     rsync -a /data/rdesouz4/singularity/r-studio/$1  ${HOME}/singularity/r-studio/
   fi
-  echo -e "\n R-Studio-server singularity image is store in:"
+  echo -e "\n R-Studio-server singularity image is stored in:"
   echo -e "\n ${HOME}/singularity/r-studio/ \n"
   echo -e "\t ${1}"
 }
-
 
 function create
 {
@@ -312,10 +308,10 @@ function create
   tmpfile_header=$(mktemp /tmp/header-slurm.XXXXXXXXXX)
   tmpfile_function=$(mktemp /tmp/function-slurm.XXXXXXXXXX)
 
-	Header $tmpfile_header
-	# Call function passed as argument
-	$1 $tmpfile_function
-	cat $tmpfile_header $tmpfile_function > $SCRIPT
+  Header $tmpfile_header
+  # Call function passed as argument
+  $1 $tmpfile_function
+  cat $tmpfile_header $tmpfile_function > $SCRIPT
   rm $tmpfile_header $tmpfile_function
 
   run $SCRIPT
@@ -351,7 +347,7 @@ function create
 function usage_login
 {
   clear
-  echo "Menu Admin"
+  echo "Admin Menu"
 
   echo -e "
   Usage: ${0##*/} [options] [arguments]
@@ -372,7 +368,7 @@ function usage_login
 
 function menu
 { clear
-  echo "Menu User"
+  echo "User Menu"
   echo "
   usage: ${0##*/} [-n nodes] [-t walltime] [-p partition] [-a Account] [-g ngpus] [-e email]
 
@@ -385,7 +381,7 @@ function usage
 {
   echo "
   options:
-  ?,-h help  give this help list
+  ?,-h help      give this help list
     -n nodes     how many nodes you need  (default: $NODES)
     -c cpus      number of cpus per task (default: $CPUS)
     -m memory    memory in K|M|G|T        (default: $MEM)
@@ -394,11 +390,11 @@ function usage
                  charged for the other (idle) CPUs as well
     -t walltime  as dd-hh:mm (default: $WALLTIME) 2 days and 1 hour
     -p partition (default: $QUEUE)
-    -a account  if users needs to use a different account. Default is primary PI
+    -a account   if users needs to use a different account. Default is primary PI
                  combined with '_' for instance: 'PI-userid'_bigmem (default: none)
-    -q qos      Quality of Service's that jobs are able to run in your association (default: qos_gpu)
-    -g gpu      specify GRES for GPU-based resources (eg: gpu:1 )
-    -e email    notify if finish or fail (default: $USER@jhu.edu)
+    -q qos       Quality of Service's that jobs are able to run in your association (default: qos_gpu)
+    -g gpu       specify GRES for GPU-based resources (eg: gpu:1 )
+    -e email     notify if finish or fail (default: $USER@jhu.edu)
     "
   exit 2
 }
