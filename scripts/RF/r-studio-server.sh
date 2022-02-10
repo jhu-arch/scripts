@@ -353,15 +353,15 @@ function usage_login
   Usage: ${0##*/} [options] [arguments]
                   [-n nodes] [-c cpus] [-m memory] [-t walltime] [-p partition] [-a account] [-q qos] [-g gpu] [-e email] [-l login]
 
-  Starts a SLURM job script to perform R-Studio server from singularity container.
+  Starts a SLURM job script to run R-Studio server into singularity container.
 
 	Choose the access method to login.
 
   arguments:
   \t -l login  [ rockfish / none / random ] (default: $LOGIN)
-  \t\t rockfish  = Cluster credentials
-  \t\t none      = Without PASSWORD
-  \t\t random    = Random PASSWORD
+  \t\t rockfish  = cluster credentials
+  \t\t none      = without PASSWORD
+  \t\t random    = random PASSWORD
 "
   usage
 }
@@ -370,9 +370,10 @@ function menu
 { clear
   echo "User Menu"
   echo "
-  usage: ${0##*/} [-n nodes] [-c cpus] [-m memory] [-t walltime] [-p partition] [-a account] [-q qos] [-g gpu] [-e email]
+  usage: ${0##*/} [options]
+                  [-n nodes] [-c cpus] [-m memory] [-t walltime] [-p partition] [-a account] [-q qos] [-g gpu] [-e email]
 
-  Starts a SLURM job script to perform R-Studio server from singularity container.
+  Starts a SLURM job script to run R-Studio server into singularity container.
   "
   usage
 }
@@ -392,8 +393,8 @@ function usage
     -p partition (default: $QUEUE)
     -a account   if users needs to use a different account. Default is primary PI
                  combined with '_' for instance: 'PI-userid'_bigmem (default: none)
-    -q qos       Quality of Service's that jobs are able to run in your association (default: qos_gpu)
-    -g gpu       specify GRES for GPU-based resources (eg: gpu:1 )
+    -q qos       quality of Service's that jobs are able to run in your association (default: qos_gpu)
+    -g gpu       specify GRES for GPU-based resources (eg: -g 1 )
     -e email     notify if finish or fail (default: $USER@jhu.edu)
     "
   exit 2
