@@ -351,7 +351,7 @@ function usage_login
 
   echo -e "
   Usage: ${0##*/} [options] [arguments]
-                  [-model] [-n nodes] [-t walltime] [-p partition] [-a Account] [-g ngpus] [-e email] [-l login]
+                  [-n nodes] [-c cpus] [-m memory] [-t walltime] [-p partition] [-a account] [-q qos] [-g gpu] [-e email] [-l login]
 
   Starts a SLURM job script to perform R-Studio server from singularity container.
 
@@ -370,7 +370,7 @@ function menu
 { clear
   echo "User Menu"
   echo "
-  usage: ${0##*/} [-n nodes] [-t walltime] [-p partition] [-a Account] [-g ngpus] [-e email]
+  usage: ${0##*/} [-n nodes] [-c cpus] [-m memory] [-t walltime] [-p partition] [-a account] [-q qos] [-g gpu] [-e email]
 
   Starts a SLURM job script to perform R-Studio server from singularity container.
   "
