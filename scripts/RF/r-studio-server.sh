@@ -42,7 +42,7 @@ fi
 cat >> $1 << EOF
 #SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=${EMAIL}
-#SBATCH --output=/home/%u/rstudio-server.job.%j.out
+#SBATCH --output=rstudio-server.job.%j.out
 #####################################
 
 echo "TIMELIMIT DAYS: $TIME"

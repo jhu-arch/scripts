@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Ricardo S Jacomini 
+# Date: Feb, 2 2022
+
+# reference: https://dl.acm.org/doi/fullHtml/10.1145/3437359.3465569
+# How to compile it 
+# git clone https://github.com/TACC/core_usage.git
+## 
+# ml intel/2021
+# export CPATH=/usr/include/:/cm/shared/apps/Intel/2021/intelpython/python3.7/include:$CPATH
+# icpc -O2 -o core_usage core_usage.cpp -lX11 -lncurses -ltinfo
+
+
+export LD_LIBRARY_PATH=/cm/shared/apps/Intel/2021/intelpython/python3.7/lib/:${LD_LIBRARY_PATH}
+
+/data/apps/helpers/.core_usage.intel 1.0 $1
