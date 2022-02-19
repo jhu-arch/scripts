@@ -93,6 +93,9 @@ function GATEKEEPER
 
   RESULT=$(gatekeeper_auth $USER $passwd)
   if [[ $? -eq 0 ]]; then
+      module load anaconda
+      conda activate jupyterlab
+
       PASSWORD=$(python3 -c "from notebook.auth import passwd; print(passwd('$passwd','sha1'))")
       return 0
   else
@@ -153,7 +156,23 @@ function run ()
 
 function create_jpn_config
 {
-  pip -q --disable-pip-version-check install notebook --user
+  #pip -q --disable-pip-version-check install notebook --user
+
+  if [ ! -d "${HOME}/.conda/envs/jupyterlab/" ]
+  then
+      echo -e "\n Creating anaconda Jupyter Lab environment... \n"
+
+      module load anaconda
+      conda create --name jupyterlab python=${PYTHON_VERSION} pip jupyterlab -y -q
+
+      echo -e "Done. "
+  fi
+
+  if [ ! -d "${HOME}/.jupyter/ssl/" ]
+  then
+    mkdir ${HOME}/.jupyter/ssl -p
+    openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout "${HOME}/.jupyter/ssl/arch_rockfish.key" -out "${HOME}/.jupyter/ssl/arch_rockfish.pem" -batch
+  fi
 
   clear
   echo -e "\nSign in with your Rockfish Login credentials: \n"
@@ -227,21 +246,6 @@ c.NotebookApp.port = PORT
 
 EOF
 
-  if [ ! -d "${HOME}/.conda/envs/jupyterlab/" ]
-  then
-      echo -e "\n Creating anaconda Jupyter Lab environment... \n"
-
-      module load anaconda
-      conda create --name jupyterlab python=${PYTHON_VERSION} pip jupyterlab -y -q
-
-      echo -e "Done. "
-  fi
-
-  if [ ! -d "${HOME}/.jupyter/ssl/" ]
-  then
-    mkdir ${HOME}/.jupyter/ssl -p
-    openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout "${HOME}/.jupyter/ssl/arch_rockfish.key" -out "${HOME}/.jupyter/ssl/arch_rockfish.pem" -batch
-  fi
 
 }
 
