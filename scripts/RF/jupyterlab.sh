@@ -33,21 +33,21 @@ EOF
 if [[ $GRES != 0 ]] ; then
    if [[ $GID -eq 1002 ]]; then
 cat >> $1 << EOF
-#SBATCH --qos="$QOS"
+#SBATCH --qos=$QOS
 EOF
    else
 cat >> $1 << EOF
-#SBATCH --account="$ACCOUNT_gpu"
+#SBATCH --account=$ACCOUNT_gpu
 EOF
    fi
 cat >> $1 << EOF
-#SBATCH --gres="gpu:"${GRES}
+#SBATCH --gres=gpu:${GRES}
 EOF
 fi
 
 if [[ $QUEUE == "bigmem" ]] ; then
 cat >> $1 << EOF
-#SBATCH --account=$ACCOUNT"_bigmem"
+#SBATCH --account=$ACCOUNT_bigmem
 EOF
 fi
 
@@ -298,8 +298,18 @@ function create_environment
   echo -e "Walltime:    \t$WALLTIME" >> Jupyter_lab.info
   echo -e "Python:  \t${PYTHON_VERSION}" >> Jupyter_lab.info
   echo -e "Conda: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
-  echo -e "Current directory: \t${DIR}" >> Jupyter_lab.info
+  echo -e "Current directory: \t${DIR} \n" >> Jupyter_lab.info
 
+  echo -e "You can start the notebook to communicate via a secure protocol" >> Jupyter_lab.info
+  echo -e "mode by setting the certfile option to .template_jupyter_notebook_config.py. \n" >> Jupyter_lab.info
+
+  echo -e "Before running the slurm script ($ sbatch jupyter_lab.slurm.script) \n" >> Jupyter_lab.info
+  echo -e "Uncomment the following lines refer to keyfile and certfile:" >> Jupyter_lab.info
+  echo -e " #c.NotebookApp.keyfile = u'/home/rdesouz4/.jupyter/ssl/arch_rockfish.key'" >> Jupyter_lab.info
+  echo -e " #c.NotebookApp.certfile = u'/home/rdesouz4/.jupyter/ssl/arch_rockfish.pem' \n" >> Jupyter_lab.info
+
+  echo -e "\nNote: In this case change to HTTPS protocol to log in to Jupyter Lab in your web browser \n"  >> Jupyter_lab.info
+  echo -e "\n https://localhost:<PORT>\n"  >> Jupyter_lab.info
 
   echo -e "\n The Jupyter Lab is ready to run.  \n"
   echo -e " 1 - Usage: \n"
@@ -309,7 +319,7 @@ function create_environment
   echo -e "\t $ cat Jupyter_lab.job.<SLURM_JOB_ID>.login \n"
 
   echo -e " 3 - Futher information: \n"
-  echo -e "\t $ cat Jupyter_lab.info"
+  echo -e "\t $ cat Jupyter_lab.info \n"
 
 	exit 0
 }
@@ -357,7 +367,7 @@ export WALLTIME=02-00:00
 export GID=$(id -g)
 export GRES=0
 export ACCOUNT=$(sacctmgr list account withas where account=rfadmin format="acc%-20,us%-30" | grep $USER | cut -d " " -f 1)
-export QOS=$(sacctmgr show qos format=name | grep gpu)
+export QOS=$(sacctmgr show qos format=name | grep gpu | sed 's/ //g')
 export EMAIL=$USER"@jh.edu"
 export LOGIN="rockfish"
 export PASSWORD
