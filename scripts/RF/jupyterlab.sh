@@ -298,6 +298,8 @@ function create_environment
   echo -e "Walltime:    \t$WALLTIME" >> Jupyter_lab.info
   echo -e "Python:  \t${PYTHON_VERSION}" >> Jupyter_lab.info
   echo -e "Conda: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
+  echo -e "Current directory: \t${DIR}" >> Jupyter_lab.info
+
 
   echo -e "\n The Jupyter Lab is ready to run.  \n"
   echo -e " 1 - Usage: \n"
