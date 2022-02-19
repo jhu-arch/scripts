@@ -25,11 +25,19 @@ cat > $1 << EOF
 #SBATCH --nodes=${NODES}
 #SBATCH --cpus-per-task=${CPUS}
 EOF
-if [[ $GRES > 0 ]] ; then
+
+if [[ $GRES != 0 ]] ; then
+   if [[ $GID -eq 1002 ]]; then
 cat >> $1 << EOF
-#SBATCH --account="$ACCOUNT"
-#SBATCH -q $QOS
-#SBATCH --gres=${GRES}
+#SBATCH --qos="$QOS"
+EOF
+   else
+cat >> $1 << EOF
+#SBATCH --account="$ACCOUNT_gpu"
+EOF
+   fi
+cat >> $1 << EOF
+#SBATCH --gres="gpu:"${GRES}
 EOF
 fi
 
@@ -105,7 +113,7 @@ function GATEKEEPER
 {
   read -s -p "? " PASSWORD
 
-  RESULT=$(rstudio_gatekeeper_auth $USER $PASSWORD)
+  RESULT=$(gatekeeper_auth $USER $PASSWORD)
   if [[ $? -eq 0 ]]; then
       #echo "YES
       return 0
@@ -272,7 +280,7 @@ function run ()
 
 	if [[ "$sbr" =~ Submitted\ batch\ job\ ([0-9]+) ]]; then
 		echo -e "\n\nHow to login to RStudio Server see details in: \n"
-	  echo "${HOME}/rstudio-server.job.${BASH_REMATCH[1]}.out"
+	  echo "rstudio-server.job.${BASH_REMATCH[1]}.out"
     echo -e "\n"
 	else
 	  echo "sbatch failed"
@@ -296,6 +304,16 @@ function sync_container
 function create
 {
   echo $1
+
+  # ARCH has a gpu partition but GRES/GPUs are needed
+  if [[ ${QUEUE} = "a100" ]] ; then
+      if [ ${GRES} -eq 0 ] ; then
+          echo -e "\n Error: please add number of gpus needed with \'-g \#\'"
+          menu
+          exit 1
+      fi
+  fi
+  
   sync_container rstudio_1.4.1106.sif
 
   SCRIPT=$HOME/singularity/r-studio/R-Studio-Server.${1}.slurm
@@ -316,13 +334,6 @@ function create
 
   run $SCRIPT
 
-  # ARCH has a gpu partition but GRES/GPUs are needed
-  if [[ $ACCOUNT != ""] && ["$QUEUE" = *"gpu"* ]] ; then
-      if [ "$GRES" == "" ] ; then
-          echo Error: please add number of gpus needed with \'-g \#\'
-          exit 1
-      fi
-  fi
 
   echo -e  "Nodes:       \t$NODES"
   echo -e  "Cores/task:  \t$CPUS"
@@ -367,7 +378,7 @@ function usage_login
 }
 
 function menu
-{ clear
+{ 
   echo "User Menu"
   echo "
   usage: ${0##*/} [options]
@@ -407,11 +418,13 @@ export CPUS=1
 export MEM=8G
 export WALLTIME=02-00:00
 export GRES=0
-export ACCOUNT=
+export ACCOUNT=$(sacctmgr list account withas where account=rfadmin format="acc%-20,us%-30" | grep $USER | cut -d " " -f 1)
 export QOS=$(sacctmgr show qos format=name | grep gpu)
 export EMAIL=$USER"@jh.edu"
 export LOGIN="rockfish"
 export PASSWORD
+export GID=$(id -g)
+
 
 # check whether user had supplied -l or --login . If yes display usage
 if [[ ("$1" == *"l"*) && ( "$1" != *"help"*) ]]
@@ -421,6 +434,7 @@ fi
 
 if [[ ( "$1" == *"h"* ) || ( "$1" == *"?"*)  ]]
 then
+  clear
   menu
 fi
 
@@ -428,7 +442,7 @@ fi
 die() { echo "$*" >&2; exit 2; }  # complain to STDERR and exit with error
 needs_arg() { if [ -z "$OPTARG" ]; then die "No arg for --$OPT option"; fi; }
 
-while getopts n:c:m:t:p:a:g:e:l:-: OPT; do
+while getopts q:n:c:m:t:p:a:g:e:l:-: OPT; do
   # support long options: https://stackoverflow.com/a/28466267/519360
  if [ "$OPT" = "-" ]; then   # long option: reformulate OPT and OPTARG
    OPT="${OPTARG%%=*}"       # extract long option name
@@ -443,6 +457,7 @@ case $OPT in
     t | walltime )  WALLTIME="${OPTARG}";;
     p | partition ) QUEUE="${OPTARG}";;
     a | account ) ACCOUNT="${OPTARG}";;
+    q | qos )  qos=${OPTARG};;
     g | gpu )  GRES="gpu:"${OPTARG};;
     e | email )  EMAIL="${OPTARG}";;
     l | login )  LOGIN=${OPTARG};;
