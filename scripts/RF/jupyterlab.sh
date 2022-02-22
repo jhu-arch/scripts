@@ -396,7 +396,7 @@ function create_environment
 
   echo -e "\nUse this commands to add multiple envs:
   \n # for python virtualenv
-  \n \t $ source <my_env_name>/bin/activate
+  \n \t $ source <myenv>/bin/activate
   \n # for conda virtualenv
   \n \t $ module load conda; conda activate <myenv>
   \n then:
@@ -406,7 +406,7 @@ function create_environment
 
   echo -e "\nUse this commands to add multiple envs:
   \n # for python virtualenv
-  \n \t $ source <my_env_name>/bin/activate
+  \n \t $ source <myenv>/bin/activate
   \n # for conda virtualenv
   \n \t $ module load conda; conda activate <myenv>
   \n then:
