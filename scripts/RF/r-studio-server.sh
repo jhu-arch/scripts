@@ -53,8 +53,6 @@ cat >> $1 << EOF
 #SBATCH --output=rstudio-server.job.%j.out
 #####################################
 
-echo "TIMELIMIT DAYS: $TIME"
-
 EOF
 
 cat >> $1 << \EOF
@@ -400,13 +398,13 @@ function usage
                  (if m > max-per-cpu * cpus, more cpus are requested)
                  note: that if you ask for more than one CPU has, your account gets
                  charged for the other (idle) CPUs as well
-    -t walltime  as dd-hh:mm (default: $WALLTIME) 2 days and 1 hour
+    -t walltime  as dd-hh:mm (default: $WALLTIME) 2 hours
     -p partition (default: $QUEUE)
     -a account   if users needs to use a different account. Default is primary PI
                  combined with '_' for instance: 'PI-userid'_bigmem (default: none)
     -q qos       quality of Service's that jobs are able to run in your association (default: qos_gpu)
     -g gpu       specify GRES for GPU-based resources (eg: -g 1 )
-    -e email     notify if finish or fail (default: $USER@jhu.edu)
+    -e email     notify if finish or fail (default: <userid>@jhu.edu)
     "
   exit 2
 }
@@ -415,8 +413,8 @@ function usage
 export QUEUE="defq"
 export NODES=1
 export CPUS=1
-export MEM=8G
-export WALLTIME=02-00:00
+export MEM=4G
+export WALLTIME=00-02:00
 export GRES=0
 export ACCOUNT=$(sacctmgr list account withas where account=rfadmin format="acc%-20,us%-30" | grep $USER | cut -d " " -f 1)
 export QOS=$(sacctmgr show qos format=name | grep gpu)
@@ -475,6 +473,7 @@ then
 fi
 
 export TIME=$(echo $WALLTIME | cut -d - -f 1)
+export TIME=30
 
 # the arguments is a function name
 # type $@ &>/dev/null && create $MODEL || menu

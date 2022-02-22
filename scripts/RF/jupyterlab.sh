@@ -58,9 +58,25 @@ cat >> $1 << EOF
 #SBATCH --erro=Jupyter_lab.job.%j.err
 # ---------------------------------------------------
 
-module load anaconda
+# Set environment conda and jupyter lab
+EOF
 
+if [ $JP -eq 0  ]; then
+  cat >> $1 << EOF
+#
+# You have chosen not to install Jupyter Lab!
+# Make sure you have the module information needed to run jupyter lab
+#
+EOF
+else
+  cat >> $1 << EOF
+module restore
+module load anaconda
 conda activate jupyterlab
+EOF
+fi
+
+cat >> $1 << EOF
 
 export DIR=${DIR}
 
@@ -93,6 +109,7 @@ function GATEKEEPER
 
   RESULT=$(gatekeeper_auth $USER $passwd)
   if [[ $? -eq 0 ]]; then
+      module restore 2>/dev/null
       module load anaconda
       conda activate jupyterlab
 
@@ -154,27 +171,84 @@ function run ()
 	fi
 }
 
+function promptyn () {
+    while true; do
+        read -p "$1 " yn
+        case $yn in
+            [Yy]* ) return 0;;
+            [Nn]* ) return 1;;
+            * ) echo "Please answer yes or no.";;
+        esac
+    done
+}
+
+function jupyterlab_menu
+
+{
+  echo "This jupyterlab.sh script will create the slurm script with jupyterlab environment.
+
+It will create following needs in your current directory:
+
+1) Slurm script to run jupyterlab (jupyter_lab.slurm.script)
+2) File with login information (Jupyter_lab.job.<JOBID>.login)
+3) File related to options parameters with information related to https server (Jupyter_lab.info)
+4) Notebook server file (.jupyter/jupyter_notebook_config.py)
+5) Conda environment named 'jupyterlab' with jupyterlab, ipykernal, pip and python (~/.conda/envs/jupyterlab/)
+
+
+Question: Would you like to install jupyterlab environment? (Item 5)
+
+If you say Y, then it will install jupyterlab and also creates a conda environment.
+
+If you say N, then it's up to the user to add which environment they want to open with jupyterlab using this slurm script. (Item 1)
+
+If you have some question about options then use jupyterlab.sh --help
+
+Answer:"
+
+}
+
+function install_pip
+{
+  ml python/3.9.0
+  curl -O https://bootstrap.pypa.io/get-pip.py
+  python get-pip.py
+  rm get-pip.py
+  pip install --user ipykernel
+  ml -python/3.9.0
+}
+
 function create_jpn_config
 {
+
+
+  if [ ! -f "${HOME}/.local/bin/pip" ]; then
+     install_pip
+  fi
+  clear
+  jupyterlab_menu
+
   #pip -q --disable-pip-version-check install notebook --user
+  if promptyn "[y/n]"; then
+   if [ ! -d "${HOME}/.conda/envs/jupyterlab/" ]; then
+        echo -e "\n Creating anaconda Jupyter Lab environment... \n"
+        module restore
+        module load anaconda
+        conda config --append channels conda-forge
+        conda config --append channels anaconda
+        conda create --name jupyterlab python=${PYTHON_VERSION} pip jupyterlab -y -q
 
-  if [ ! -d "${HOME}/.conda/envs/jupyterlab/" ]
-  then
-      echo -e "\n Creating anaconda Jupyter Lab environment... \n"
-
-      module load anaconda
-      conda create --name jupyterlab python=${PYTHON_VERSION} pip jupyterlab -y -q
-
-      echo -e "Done. "
+        echo -e "Done. "
+    fi
+  else
+    JP=0
   fi
 
-  if [ ! -d "${HOME}/.jupyter/ssl/" ]
-  then
+  if [ ! -d "${HOME}/.jupyter/ssl/" ]; then
     mkdir ${HOME}/.jupyter/ssl -p
     openssl req -x509 -nodes -days 365 -newkey rsa:1024 -keyout "${HOME}/.jupyter/ssl/arch_rockfish.key" -out "${HOME}/.jupyter/ssl/arch_rockfish.pem" -batch
   fi
 
-  clear
   echo -e "\nSign in with your Rockfish Login credentials: \n"
   echo -e "\t Enter the ${USER} password: "
 
@@ -265,29 +339,22 @@ function create_environment
 
   SCRIPT=${DIR}/jupyter_lab.slurm.script
 
-  if [ ! -f "${SCRIPT}" ]
-  then
-    echo -e "\n Creating slurm script: $SCRIPT \n"
-
-    tmpfile_header=$(mktemp /tmp/header-slurm.XXXXXXXXXX)
-    tmpfile_function=$(mktemp /tmp/function-slurm.XXXXXXXXXX)
-
-    Header $tmpfile_header
-    # Call function passed as argument
-    create_slurm $tmpfile_function
-
-    cat $tmpfile_header $tmpfile_function > ${SCRIPT}
-    rm $tmpfile_header $tmpfile_function
-  fi
-
-  if [ ! -f ${DIR}/.jupiter/jupyter_notebook_config.py ]
-  then
+  if [ ! -f ${DIR}/.jupiter/jupyter_notebook_config.py ]; then
       create_jpn_config
   fi
 
-  clear
+  echo -e "\n Creating slurm script: $SCRIPT \n"
 
-  echo -e "\n"
+  tmpfile_header=$(mktemp /tmp/header-slurm.XXXXXXXXXX)
+  tmpfile_function=$(mktemp /tmp/function-slurm.XXXXXXXXXX)
+
+  Header $tmpfile_header
+  # Call function passed as argument
+  create_slurm $tmpfile_function
+
+  cat $tmpfile_header $tmpfile_function > ${SCRIPT}
+  rm $tmpfile_header $tmpfile_function
+
   echo -e "SLURM job script for run Jupyter Lab\n"
   echo -e "The Advanced Research Computing at Hopkins (ARCH)\n"
 
@@ -301,7 +368,7 @@ function create_environment
   echo -e "Partition: \t$QUEUE" >> Jupyter_lab.info
   echo -e "Walltime:    \t$WALLTIME" >> Jupyter_lab.info
   echo -e "Python:  \t${PYTHON_VERSION}" >> Jupyter_lab.info
-  echo -e "Conda: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
+  echo -e "Conda environment: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
   echo -e "Current directory: \t${DIR} \n" >> Jupyter_lab.info
 
   echo -e "You can start the notebook to communicate via a secure protocol" >> Jupyter_lab.info
@@ -309,8 +376,8 @@ function create_environment
 
   echo -e "Before running the slurm script ($ sbatch jupyter_lab.slurm.script) \n" >> Jupyter_lab.info
   echo -e "Uncomment the following lines refer to keyfile and certfile:" >> Jupyter_lab.info
-  echo -e " #c.NotebookApp.keyfile = u'/home/rdesouz4/.jupyter/ssl/arch_rockfish.key'" >> Jupyter_lab.info
-  echo -e " #c.NotebookApp.certfile = u'/home/rdesouz4/.jupyter/ssl/arch_rockfish.pem' \n" >> Jupyter_lab.info
+  echo -e " #c.NotebookApp.keyfile = u'/home/<userid>/.jupyter/ssl/arch_rockfish.key'" >> Jupyter_lab.info
+  echo -e " #c.NotebookApp.certfile = u'/home/<userid>/.jupyter/ssl/arch_rockfish.pem' \n" >> Jupyter_lab.info
 
   echo -e "\nNote: In this case change to HTTPS protocol to log in to Jupyter Lab in your web browser \n"  >> Jupyter_lab.info
   echo -e "\n https://localhost:<PORT>\n"  >> Jupyter_lab.info
@@ -319,11 +386,43 @@ function create_environment
   echo -e " 1 - Usage: \n"
   echo -e "\t $ sbatch jupyter_lab.slurm.script  \n"
 
-  echo -e " 2 - How to login see login file: \n"
+  echo -e " 2 - How to login see login file (after step 1): \n"
   echo -e "\t $ cat Jupyter_lab.job.<SLURM_JOB_ID>.login \n"
 
   echo -e " 3 - Futher information: \n"
   echo -e "\t $ cat Jupyter_lab.info \n"
+
+  echo -e " 3 - Futher information: \n"
+
+  echo -e "\nUse this commands to add multiple envs:
+  \n # for python virtualenv
+  \n \t $ source <my_env_name>/bin/activate
+  \n # for conda virtualenv
+  \n \t $ module load conda; conda activate <myenv>
+  \n then:
+  \n \t $ pip install --user ipykernel
+  \n \t $ python -m ipykernel install --user --name=<myenv>
+  \n \t $ jupyter kernelspec list"
+
+  echo -e "\nUse this commands to add multiple envs:
+  \n # for python virtualenv
+  \n \t $ source <my_env_name>/bin/activate
+  \n # for conda virtualenv
+  \n \t $ module load conda; conda activate <myenv>
+  \n then:
+  \n \t $ pip install --user ipykernel
+  \n \t $ python -m ipykernel install --user --name=<myenv>
+  \n \t $ jupyter kernelspec list"  >> Jupyter_lab.info
+
+
+  if [[ $JP -eq 0  ]]; then
+    echo -e "You chose do not to install Jupyter Lab!\n"
+    echo -e "Make sure the slurm script ( item 1 ) has the module information needed to run jupyter lab (set environment session)."
+    echo -e "\nYou chose do not to install Jupyter Lab!\n"  >> Jupyter_lab.info
+    echo -e "Make sure the slurm script ( item 1 ) has the module information needed to run jupyter lab set environment session. \n"  >> Jupyter_lab.info
+  fi
+
+
 
 	exit 0
 }
@@ -345,19 +444,19 @@ function usage
   options:
   ?,-h help      give this help list
     -n nodes     how many nodes you need  (default: $NODES)
-    -c cpus      number of cpus per task (default: $CPUS)
+    -c cpus      number of cpus per task  (default: $CPUS)
     -m memory    memory in K|M|G|T        (default: $MEM)
                  (if m > max-per-cpu * cpus, more cpus are requested)
                  note: that if you ask for more than one CPU has, your account gets
                  charged for the other (idle) CPUs as well
-    -t walltime  as dd-hh:mm (default: $WALLTIME) 2 days and 1 hour
+    -t walltime  as dd-hh:mm (default: $WALLTIME)
     -p partition (default: $QUEUE)
     -a account   if users needs to use a different account. Default is primary PI
                  combined with '_' for instance: 'PI-userid'_bigmem (default: none)
     -q qos       quality of Service's that jobs are able to run in your association (default: qos_gpu)
     -g gpu       specify GRES for GPU-based resources (eg: -g 1 )
     -v conda     Python version for conda environment(default: 3.9.10)
-    -e email     notify if finish or fail (default: $USER@jhu.edu)
+    -e email     notify if finish or fail (default: <userid>@jhu.edu)
     "
   exit 2
 }
@@ -366,8 +465,8 @@ function usage
 export QUEUE="defq"
 export NODES=1
 export CPUS=1
-export MEM=8G
-export WALLTIME=02-00:00
+export MEM=4G
+export WALLTIME=00-02:00
 export GID=$(id -g)
 export GRES=0
 export ACCOUNT=$(sacctmgr list account withas where account=rfadmin format="acc%-20,us%-30" | grep $USER | cut -d " " -f 1)
@@ -376,6 +475,7 @@ export EMAIL=$USER"@jh.edu"
 export LOGIN="rockfish"
 export PASSWORD
 export PYTHON_VERSION=3.9.10
+export JP=1
 
 
 if [[ ( "$1" == *"h"* ) || ( "$1" == *"?"*)  ]]
