@@ -191,7 +191,7 @@ It will create following needs in your current directory:
 
 1) Slurm script to run jupyterlab (jupyter_lab.slurm.script)
 2) File with login information (Jupyter_lab.job.<JOBID>.login)
-3) File related to options parameters with information related to https server (Jupyter_lab.info)
+3) File related to slurm INPUT ENVIRONMENT VARIABLES and HTTPS server information (Jupyter_lab.info)
 4) Notebook server file (.jupyter/jupyter_notebook_config.py)
 5) Conda environment named 'jupyterlab' with jupyterlab, ipykernal, pip and python (~/.conda/envs/jupyterlab/)
 
