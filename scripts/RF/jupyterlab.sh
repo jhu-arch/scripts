@@ -1,10 +1,12 @@
 #!/bin/bash
 # -*- coding: utf-8 -*-
-# SLURM job script for run Jupyter Lab
 # The Advanced Research Computing at Hopkins (ARCH)
-# Ricardo S Jacomini < rdesouz4 @ jhu.edu >
+# User and Application Support < help@rockfish.jhu.edu >
+#
+# SLURM job script for run Jupyter Lab
+#
 # Date: Feb, 18 2022
-
+#
 # custom of /data/apps/helpers/r-studio-server.sh
 #
 
@@ -14,11 +16,11 @@ function Header
 cat > $1 << EOF
 #!/bin/bash
 # ---------------------------------------------------
+# The Advanced Research Computing at Hopkins (ARCH)
+# User and Application Support < help@rockfish.jhu.edu >
 #
 # SLURM job script for run Jupyter Lab
-# The Advanced Research Computing at Hopkins (ARCH)
-# Ricardo S Jacomini < rdesouz4 @ jhu.edu >
-# Date: Feb, 18 2022
+#
 # ---------------------------------------------------
 #  INPUT ENVIRONMENT VARIABLES
 # ---------------------------------------------------
@@ -58,21 +60,31 @@ cat >> $1 << EOF
 #SBATCH --erro=Jupyter_lab.job.%j.err
 # ---------------------------------------------------
 
-# Set environment conda and jupyter lab
+# ---------------------------------------------------
+#  Set environment with jupyterlab
+# ---------------------------------------------------
+#
 EOF
 
 if [ $JP -eq 0  ]; then
   cat >> $1 << EOF
+# Use your own python/conda enviromnent
 #
-# You have chosen not to install Jupyter Lab!
-# Make sure you have the module information needed to run jupyter lab
+# It's up to the user to add which environment they want to open within this script.
+# Make sure you have jupyterlab installed in this environment.
 #
+# ---------------------------------------------------
+
 EOF
 else
   cat >> $1 << EOF
+
 module restore
 module load anaconda
 conda activate jupyterlab
+
+# ---------------------------------------------------
+
 EOF
 fi
 
@@ -84,6 +96,8 @@ EOF
 
 cat >> $1 << \EOF
 
+# export PATH="$HOME/.local/bin:$HOME/bin:$PATH"
+
 # Set OMP_NUM_THREADS to prevent OpenBLAS (and any other OpenMP-enhanced
 # libraries used by R) from spawning more threads than the number of processors
 # allocated to the job.
@@ -92,7 +106,6 @@ cat >> $1 << \EOF
 # personal libraries from any R installation in the host environment
 #
 
-## or use your own python/conda enviromnent
 XDG_RUNTIME_DIR=””
 
 NODE=$(hostname -s)
@@ -185,7 +198,8 @@ function promptyn () {
 function jupyterlab_menu
 
 {
-  echo "This jupyterlab.sh script will create the slurm script with jupyterlab environment.
+  echo "
+This jupyterlab.sh script will create the slurm script with jupyterlab environment.
 
 It will create following needs in your current directory:
 
@@ -195,14 +209,14 @@ It will create following needs in your current directory:
 4) Notebook server file (.jupyter/jupyter_notebook_config.py)
 5) Conda environment named 'jupyterlab' with jupyterlab, ipykernal, pip and python (~/.conda/envs/jupyterlab/)
 
-
 Question: Would you like to install jupyterlab environment? (Item 5)
 
 If you say Y, then it will install jupyterlab and also creates a conda environment.
 
-If you say N, then it's up to the user to add which environment they want to open with jupyterlab using this slurm script. (Item 1)
+If you say N, then it's up to the user to add which environment they want to open
+with jupyterlab using this slurm script (Item 1). Then, make sure you have jupyterlab installed in this environment.
 
-If you have some question about options then use jupyterlab.sh --help
+Please, if you have more questions about options, use: jupyterlab.sh --help
 
 Answer:"
 
@@ -212,9 +226,10 @@ function install_pip
 {
   ml python/3.9.0
   curl -O https://bootstrap.pypa.io/get-pip.py
-  python get-pip.py
-  rm get-pip.py
+  python get-pip.py;  rm get-pip.py
   pip install --user ipykernel
+  pip install --user nb_conda
+  pip install --user jupyterlab
   ml -python/3.9.0
 }
 
@@ -236,7 +251,7 @@ function create_jpn_config
         module load anaconda
         conda config --append channels conda-forge
         conda config --append channels anaconda
-        conda create --name jupyterlab python=${PYTHON_VERSION} pip jupyterlab -y -q
+        conda create --name jupyterlab python=${PYTHON_VERSION} ipykernel nb_conda_kernels pip jupyterlab -y -q
 
         echo -e "Done. "
     fi
@@ -280,8 +295,9 @@ function create_jpn_config
 
   cat > ${DIR}/.template_jupyter_notebook_config.py << EOF
 #------------------------------------------------------------------------------
+# SLURM job script for run Jupyter Lab
 # The Advanced Research Computing at Hopkins (ARCH)
-# Ricardo S Jacomini < rdesouz4 @ jhu.edu >
+# Software Team < help@rockfish.jhu.edu >
 # Date: Feb, 18 2022
 #
 # Configuration file for jupyter-notebook.
@@ -362,13 +378,17 @@ function create_environment
   echo -e "The Advanced Research Computing at Hopkins (ARCH)\n\n"  >> Jupyter_lab.info
   echo -e "Current date and time $(date +'%m/%d/%Y - %r')"   >> Jupyter_lab.info
   echo -e "Nodes:       \t$NODES" >> Jupyter_lab.info
-  echo -e "Cores/task:  \t$CPUS" >> Jupyter_lab.python.info
+  echo -e "Cores/task:  \t$CPUS" >> Jupyter_lab.info
   echo -e "Total cores: \t$(echo $NODES*$CPUS | bc)" >> Jupyter_lab.info
   echo -e "# GPU: \t$GRES" >> Jupyter_lab.info
   echo -e "Partition: \t$QUEUE" >> Jupyter_lab.info
   echo -e "Walltime:    \t$WALLTIME" >> Jupyter_lab.info
-  echo -e "Python:  \t${PYTHON_VERSION}" >> Jupyter_lab.info
-  echo -e "Conda environment: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
+
+  if [[ $JP -eq 1  ]]; then
+    echo -e "Python:  \t${PYTHON_VERSION}" >> Jupyter_lab.info
+    echo -e "Conda environment: \t${HOME}/.conda/envs/jupyterlab/" >> Jupyter_lab.info
+  fi
+
   echo -e "Current directory: \t${DIR} \n" >> Jupyter_lab.info
 
   echo -e "You can start the notebook to communicate via a secure protocol" >> Jupyter_lab.info
@@ -379,7 +399,7 @@ function create_environment
   echo -e " #c.NotebookApp.keyfile = u'/home/<userid>/.jupyter/ssl/arch_rockfish.key'" >> Jupyter_lab.info
   echo -e " #c.NotebookApp.certfile = u'/home/<userid>/.jupyter/ssl/arch_rockfish.pem' \n" >> Jupyter_lab.info
 
-  echo -e "\nNote: In this case change to HTTPS protocol to log in to Jupyter Lab in your web browser \n"  >> Jupyter_lab.info
+  echo -e "\nNote: In this case change to HTTPS protocol to login to Jupyter Lab using your web browser \n"  >> Jupyter_lab.info
   echo -e "\n https://localhost:<PORT>\n"  >> Jupyter_lab.info
 
   echo -e "\n The Jupyter Lab is ready to run.  \n"
@@ -392,37 +412,43 @@ function create_environment
   echo -e " 3 - Futher information: \n"
   echo -e "\t $ cat Jupyter_lab.info \n"
 
-  echo -e " 3 - Futher information: \n"
-
-  echo -e "\nUse this commands to add multiple envs:
-  \n # for python virtualenv
-  \n \t $ source <myenv>/bin/activate
-  \n # for conda virtualenv
+  echo -e "\nInstructions for adding multiple envs:
+  \n    # change to the proper version of python or conda
+  \n ## For Python Virtual environment
+  \n \t $ module load python; source <myenv>/bin/activate
+  \n ## For Conda environment
   \n \t $ module load conda; conda activate <myenv>
   \n then:
-  \n \t $ pip install --user ipykernel
-  \n \t $ python -m ipykernel install --user --name=<myenv>
-  \n \t $ jupyter kernelspec list"
+  \n \t (myenv)$ pip install ipykernel
+  \n # Install Jupyter kernel
+  \n \t (myenv)$ ipython kernel install --user --name=<any_name_for_kernel> --display-name \"Python (myenv)\"
+  \n # List kernels
+  \n \t (myenv)$ jupyter kernelspec list"
 
-  echo -e "\nUse this commands to add multiple envs:
-  \n # for python virtualenv
-  \n \t $ source <myenv>/bin/activate
-  \n # for conda virtualenv
+  echo -e "\nInstructions for adding multiple envs:
+  \n    # change to the proper version of python or conda
+  \n ## For Python Virtual environment
+  \n \t $ module load python; source <myenv>/bin/activate
+  \n ## For Conda environment
   \n \t $ module load conda; conda activate <myenv>
   \n then:
-  \n \t $ pip install --user ipykernel
-  \n \t $ python -m ipykernel install --user --name=<myenv>
-  \n \t $ jupyter kernelspec list"  >> Jupyter_lab.info
-
+  \n \t (myenv)$ pip install ipykernel
+  \n # Install Jupyter kernel
+  \n \t (myenv)$ ipython kernel install --user --name=<any_name_for_kernel> --display-name \"Python (myenv)\"
+  \n # List kernels
+  \n \t (myenv)$ jupyter kernelspec list"  >> Jupyter_lab.info
 
   if [[ $JP -eq 0  ]]; then
-    echo -e "You chose do not to install Jupyter Lab!\n"
-    echo -e "Make sure the slurm script ( item 1 ) has the module information needed to run jupyter lab (set environment session)."
-    echo -e "\nYou chose do not to install Jupyter Lab!\n"  >> Jupyter_lab.info
-    echo -e "Make sure the slurm script ( item 1 ) has the module information needed to run jupyter lab set environment session. \n"  >> Jupyter_lab.info
+    echo -e "\n
+    You chose do not to install Jupyter Lab enviromnent!\n
+    Use your own python/conda enviromnent. It's up to the user to add which environment they want to open with jupyter_lab.slurm.script.
+    Make sure you have jupyterlab installed into your own environment."
+
+    echo -e "\n
+    You chose do not to install Jupyter Lab enviromnent!\n
+    Use your own python/conda enviromnent. It's up to the user to add which environment they want to open with jupyter_lab.slurm.script.
+    Make sure you have jupyterlab installed into your own environment."  >> Jupyter_lab.info
   fi
-
-
 
 	exit 0
 }
@@ -476,7 +502,6 @@ export LOGIN="rockfish"
 export PASSWORD
 export PYTHON_VERSION=3.9.10
 export JP=1
-
 
 if [[ ( "$1" == *"h"* ) || ( "$1" == *"?"*)  ]]
 then
