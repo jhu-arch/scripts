@@ -374,7 +374,7 @@ function create_environment
   echo -e " 2 - How to login see login file (after step 1): \n"
   echo -e "\t $ cat Jupyter_lab.job.<SLURM_JOB_ID>.login \n"
 
-  echo -e " 3 - Futher information: \n"
+  echo -e " 3 - Further information: \n"
   echo -e "\t $ cat Jupyter_lab.info \n"
 
   echo -e "\nInstructions for adding multiple envs:
