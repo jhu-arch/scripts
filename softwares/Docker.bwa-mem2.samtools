@@ -1,0 +1,45 @@
+FROM --platform=linux/amd64 ubuntu:21.10
+
+MAINTAINER Ricardo S. Jacomini <rdesouz4@jhu.edu>
+
+RUN uname -a
+
+ENV TZ=America/New_York
+
+RUN apt-get update -qq
+
+RUN apt-get install -y tzdata
+
+RUN ln -fs /usr/share/zoneinfo/$TZ /etc/localtime && dpkg-reconfigure -f noninteractive tzdata
+
+RUN date
+
+RUN apt-get install -yq --no-install-suggests --no-install-recommends \
+
+    ca-certificates curl gcc g++ make git wget bzip2 libbz2-dev \
+
+    zlib1g-dev liblzma-dev libncurses5-dev libncursesw5-dev xz-utils libcurl4-openssl-dev \
+
+    bwa bedtools \
+
+    software-properties-common \
+
+    apt-get install -y curl
+
+RUN cd /usr/bin \
+    curl -L https://github.com/samtools/htslib/archive/refs/tags/1.15.1.tar.gz | tar zxvf - \
+    cd /usr/bin/htslib-1.15.1 && make && cd /usr/bin
+
+RUN curl -L https://github.com/bwa-mem2/bwa-mem2/archive/refs/tags/v2.2.tar.gz | tar zxvf - \
+    cd /usr/bin/bwa-mem2-2.2 && make && cd /usr/bin
+
+RUN curl -L https://github.com/samtools/bcftools/archive/refs/tags/1.15.1.tar.gz | tar zxvf - \
+    cd /usr/bin/bcftools-1.15 && make && cd /usr/bin
+
+RUN curl -L https://github.com/samtools/samtools/archive/refs/tags/1.15.1.tar.gz | tar zxvf - \
+    cd /usr/bin/samtools-1.15.1 && make && cd /usr/bin
+
+RUN rm *.tar.*
+
+ENV LC_ALL=C
+ENV PATH="/usr/bin/htslib-1.15.1:/usr/bin/bwa-mem2-2.2:/usr/bin/bcftools-1.15:/usr/bin/samtools-1.15.1:${PATH}"
